@@ -1,0 +1,2628 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>可信任 AI 執行平台：需求分析與作業流程規劃｜Lumina AI Crew</title>
+  <meta name="description" content="以使用者操作流程為起點，建立控制面（Lumina）與執行面（Hermes）分離、具備有效／未過期／身分綁定／單次核銷特性與離線優先能力的可信任 AI 執行平台規劃。">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;600;700&family=Noto+Serif+TC:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f9f7f4;
+      --bg-elevated: #fcfbf9;
+      --bg-muted: #f1ede6;
+      --bg-card: #f5f1ea;
+      --ink: #1a1a1a;
+      --ink-soft: #44403c;
+      --ink-muted: #6b655e;
+      --accent: #1f514c;
+      --accent-soft: rgba(31, 81, 76, 0.08);
+      --accent-border: rgba(31, 81, 76, 0.24);
+      --warn: #b84a2d;
+      --warn-soft: rgba(184, 74, 45, 0.08);
+      --warn-border: rgba(184, 74, 45, 0.28);
+      --rule: rgba(26, 26, 26, 0.11);
+      --rule-strong: rgba(26, 26, 26, 0.22);
+      --shadow-sm: 0 2px 10px rgba(26, 26, 26, 0.04);
+      --shadow-md: 0 10px 30px rgba(26, 26, 26, 0.07);
+      --shadow-lg: 0 18px 48px rgba(26, 26, 26, 0.12);
+      --font-sans: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+      --font-serif: "Noto Serif TC", "Noto Sans TC", "PingFang TC", serif;
+      --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      --max-page: 1120px;
+      --max-copy: 720px;
+      --max-wide: 860px;
+      --nav-height: 58px;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      scroll-padding-top: calc(var(--nav-height) + 24px);
+      -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: var(--bg);
+      color: var(--ink);
+      font-family: var(--font-sans);
+      font-size: 16.5px;
+      line-height: 1.68;
+      letter-spacing: 0;
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: clip;
+    }
+
+    /* Subtle editorial paper surface without fixed compositing layer */
+    main, header, nav, footer, figure {
+      position: relative;
+      z-index: 1;
+    }
+
+    a {
+      color: var(--accent);
+      text-decoration: underline;
+      text-decoration-thickness: 1px;
+      text-underline-offset: 3px;
+      transition: color 0.18s ease, text-decoration-color 0.18s ease;
+    }
+
+    a:hover {
+      color: var(--warn);
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: 0.88em;
+      background: var(--bg-muted);
+      color: var(--ink);
+      padding: 0.12em 0.42em;
+      border-radius: 5px;
+      border: 1px solid var(--rule);
+      word-break: break-word;
+    }
+
+    /* Summary Banner (Top Element inside body, constrained per md_to_html) */
+    figure.summary-figure {
+      margin: 24px auto 16px;
+      padding: 0 24px;
+      max-width: var(--max-page);
+    }
+
+    figure.summary-figure .figure-frame {
+      max-width: 640px;
+      margin: 0 auto;
+    }
+
+    figure.summary-figure img {
+      width: 100%;
+      max-width: 640px;
+      display: block;
+      margin: 0 auto;
+      border-radius: var(--radius-md);
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+      border: 1px solid var(--rule);
+      box-shadow: var(--shadow-md);
+      cursor: zoom-in;
+      transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.28s ease;
+    }
+
+    figure.summary-figure img:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    /* Sticky Navigation */
+    .site-nav {
+      position: sticky;
+      top: 0;
+      z-index: 90;
+      height: var(--nav-height);
+      background: rgba(249, 247, 244, 0.9);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-top: 1px solid var(--rule);
+      border-bottom: 1px solid var(--rule);
+    }
+
+    .nav-progress {
+      position: absolute;
+      left: 0;
+      bottom: -1px;
+      height: 2px;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent), var(--warn));
+      transition: width 0.08s linear;
+    }
+
+    .nav-inner {
+      max-width: var(--max-page);
+      height: 100%;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .nav-brand {
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--ink);
+      text-decoration: none;
+      padding-right: 12px;
+      border-right: 1px solid var(--rule);
+      white-space: nowrap;
+    }
+
+    .nav-brand-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      padding: 4px 0;
+      flex: 1;
+    }
+
+    .nav-links::-webkit-scrollbar {
+      display: none;
+    }
+
+    .nav-links a {
+      flex-shrink: 0;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--ink-muted);
+      text-decoration: none;
+      padding: 5px 10px;
+      border-radius: 999px;
+      white-space: nowrap;
+      transition: background-color 0.18s ease, color 0.18s ease;
+    }
+
+    .nav-links a:hover {
+      color: var(--ink);
+      background: var(--bg-muted);
+    }
+
+    .nav-links a.is-active {
+      color: var(--bg);
+      background: var(--ink);
+    }
+
+    /* Hero Header */
+    header.hero {
+      max-width: var(--max-copy);
+      margin: 36px auto 40px;
+      padding: 0 24px;
+    }
+
+    .hero-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      font-weight: 500;
+      color: var(--accent);
+      background: var(--accent-soft);
+      border: 1px solid var(--accent-border);
+      padding: 4px 12px;
+      border-radius: 999px;
+      margin-bottom: 18px;
+      white-space: nowrap;
+    }
+
+    h1 {
+      margin: 0 0 20px;
+      font-family: var(--font-serif);
+      font-size: clamp(1.75rem, 4.1vw, 3.05rem);
+      font-weight: 700;
+      line-height: 1.24;
+      letter-spacing: 0;
+      color: var(--ink);
+      text-wrap: balance;
+    }
+
+    .h1-line {
+      display: block;
+    }
+
+    .hero-lead {
+      font-size: 18px;
+      line-height: 1.66;
+      color: var(--ink-soft);
+      margin: 0 0 28px;
+    }
+
+    .dossier-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      padding: 16px 18px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--rule);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .dossier-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .dossier-label {
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--ink-muted);
+    }
+
+    .dossier-value {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ink);
+      line-height: 1.45;
+    }
+
+    /* Main Article Container */
+    article.editorial-body {
+      max-width: var(--max-page);
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    /* All standard prose blocks constrained strictly to 720px centered */
+    .copy-col {
+      max-width: var(--max-copy);
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .wide-col {
+      max-width: var(--max-wide);
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    section.doc-section {
+      padding: 44px 0 12px;
+      border-top: 1px solid var(--rule);
+      margin-top: 32px;
+    }
+
+    section.doc-section:first-of-type {
+      margin-top: 12px;
+    }
+
+    .section-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+
+    .section-eyebrow::after {
+      content: "";
+      display: inline-block;
+      width: 28px;
+      height: 1px;
+      background: var(--accent-border);
+    }
+
+    h2 {
+      margin: 0 0 20px;
+      font-family: var(--font-serif);
+      font-size: clamp(1.5rem, 2.8vw, 2.05rem);
+      font-weight: 700;
+      line-height: 1.3;
+      letter-spacing: 0;
+      color: var(--ink);
+      text-wrap: balance;
+    }
+
+    h3 {
+      margin: 32px 0 14px;
+      font-size: 1.2rem;
+      font-weight: 700;
+      line-height: 1.4;
+      color: var(--ink);
+    }
+
+    p {
+      margin: 0 0 16px;
+      color: var(--ink);
+    }
+
+    strong {
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    /* Editorial Thesis Callout & Blockquotes */
+    blockquote.thesis-quote {
+      margin: 24px 0;
+      padding: 18px 22px;
+      background: var(--bg-elevated);
+      border-left: 3.5px solid var(--accent);
+      border-top: 1px solid var(--rule);
+      border-right: 1px solid var(--rule);
+      border-bottom: 1px solid var(--rule);
+      border-radius: 0 var(--radius-md) var(--radius-md) 0;
+      box-shadow: var(--shadow-sm);
+      font-size: 17px;
+      line-height: 1.7;
+      color: var(--ink);
+    }
+
+    blockquote.thesis-quote p:last-child {
+      margin-bottom: 0;
+    }
+
+    .callout-statement {
+      margin: 22px 0;
+      padding: 16px 20px;
+      background: var(--accent-soft);
+      border: 1px solid var(--accent-border);
+      border-radius: var(--radius-md);
+      font-weight: 600;
+      color: var(--ink);
+      line-height: 1.65;
+    }
+
+    .callout-warn {
+      margin: 22px 0;
+      padding: 16px 20px;
+      background: var(--warn-soft);
+      border: 1px solid var(--warn-border);
+      border-radius: var(--radius-md);
+      color: var(--ink);
+      line-height: 1.65;
+    }
+
+    .source-note {
+      font-size: 14.5px;
+      color: var(--ink-muted);
+      padding: 12px 16px;
+      background: var(--bg-card);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--rule);
+    }
+
+    /* Lists */
+    ul.clean-list, ol.clean-list {
+      margin: 0 0 18px;
+      padding-left: 1.4em;
+    }
+
+    ul.clean-list li, ol.clean-list li {
+      margin-bottom: 8px;
+      padding-left: 4px;
+    }
+
+    ul.clean-list li::marker {
+      color: var(--accent);
+    }
+
+    ol.clean-list li::marker {
+      color: var(--accent);
+      font-weight: 700;
+      font-family: var(--font-mono);
+    }
+
+    /* Inquiry Grid for Section 2 */
+    .inquiry-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin: 20px 0 24px;
+    }
+
+    .inquiry-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 13px 16px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--rule);
+      border-radius: var(--radius-sm);
+      transition: border-color 0.2s ease, transform 0.2s ease;
+    }
+
+    .inquiry-card:hover {
+      border-color: var(--accent-border);
+      transform: translateX(3px);
+    }
+
+    .inquiry-num {
+      flex-shrink: 0;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent);
+      background: var(--accent-soft);
+      border: 1px solid var(--accent-border);
+      padding: 2px 8px;
+      border-radius: 6px;
+      margin-top: 2px;
+    }
+
+    /* Section Figures (16:9 desktop / 9:16 mobile) */
+    figure.section-figure {
+      margin: 30px auto;
+      max-width: var(--max-wide);
+    }
+
+    figure.section-figure img {
+      width: 100%;
+      max-width: 860px;
+      display: block;
+      margin: 0 auto;
+      border-radius: var(--radius-md);
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+      border: 1px solid var(--rule);
+      box-shadow: var(--shadow-md);
+      cursor: zoom-in;
+      transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.28s ease;
+    }
+
+    figure.section-figure img:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    figcaption {
+      max-width: var(--max-copy);
+      margin: 12px auto 0;
+      font-size: 13.5px;
+      line-height: 1.54;
+      color: var(--ink-muted);
+      text-align: center;
+    }
+
+    /* Tables (Desktop Editorial Table -> Mobile Stacked Cards) */
+    .table-wrap {
+      max-width: var(--max-wide);
+      margin: 24px auto 28px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--rule);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+
+    table.spec-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 15px;
+      line-height: 1.58;
+    }
+
+    table.spec-table thead {
+      background: var(--bg-muted);
+      border-bottom: 1px solid var(--rule-strong);
+    }
+
+    table.spec-table th {
+      text-align: left;
+      padding: 13px 16px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--ink-soft);
+      white-space: nowrap;
+    }
+
+    table.spec-table td {
+      padding: 13px 16px;
+      border-bottom: 1px solid var(--rule);
+      vertical-align: top;
+      color: var(--ink);
+    }
+
+    table.spec-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    table.spec-table tbody tr {
+      transition: background-color 0.15s ease;
+    }
+
+    table.spec-table tbody tr:hover {
+      background: rgba(31, 81, 76, 0.035);
+    }
+
+    .cell-key {
+      font-weight: 700;
+      color: var(--ink);
+      white-space: nowrap;
+    }
+
+    .tag-pill {
+      display: inline-block;
+      font-size: 12.5px;
+      font-weight: 600;
+      padding: 2px 9px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      border: 1px solid var(--accent-border);
+      white-space: nowrap;
+    }
+
+    .tag-pill--warn {
+      background: var(--warn-soft);
+      color: var(--warn);
+      border-color: var(--warn-border);
+    }
+
+    /* Mermaid Flow Container */
+    .diagram-card {
+      max-width: var(--max-wide);
+      margin: 26px auto 30px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--rule);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+
+    .diagram-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 11px 16px;
+      background: var(--bg-muted);
+      border-bottom: 1px solid var(--rule);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink-soft);
+    }
+
+    .diagram-zoom-btn {
+      appearance: none;
+      border: 1px solid var(--rule-strong);
+      background: var(--bg-elevated);
+      color: var(--ink);
+      font-family: var(--font-sans);
+      font-size: 12.5px;
+      font-weight: 600;
+      padding: 4px 11px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background-color 0.18s ease, border-color 0.18s ease;
+    }
+
+    .diagram-zoom-btn:hover {
+      background: var(--ink);
+      color: var(--bg);
+      border-color: var(--ink);
+    }
+
+    .diagram-canvas {
+      padding: 20px 16px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(180deg, #fcfbf9 0%, #f9f7f4 100%);
+    }
+
+    .diagram-svg-wrap {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+    }
+
+    .diagram-canvas svg.flow-svg {
+      width: 100%;
+      max-width: 780px;
+      height: auto;
+      display: block;
+      cursor: zoom-in;
+      font-family: var(--font-sans);
+    }
+
+    .flow-svg text {
+      font-family: var(--font-sans);
+      user-select: none;
+    }
+
+    .flow-svg .node-card {
+      fill: #fcfbf9;
+      stroke: #1f514c;
+      stroke-width: 1.6;
+    }
+
+    .flow-svg .node-decision {
+      fill: #eef4f3;
+      stroke: #1f514c;
+      stroke-width: 1.7;
+    }
+
+    .flow-svg .node-warn {
+      fill: #fdf4f1;
+      stroke: #b84a2d;
+      stroke-width: 1.6;
+    }
+
+    .flow-svg .node-terminal {
+      fill: #1f514c;
+      stroke: #1f514c;
+      stroke-width: 1.6;
+    }
+
+    .flow-svg .edge-line {
+      fill: none;
+      stroke: #3f3b36;
+      stroke-width: 1.6;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .flow-svg .edge-line--warn {
+      fill: none;
+      stroke: #b84a2d;
+      stroke-width: 1.6;
+      stroke-dasharray: 5 3;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .flow-svg .edge-line--accent {
+      fill: none;
+      stroke: #1f514c;
+      stroke-width: 1.75;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .flow-svg .pill-bg {
+      fill: #f9f7f4;
+      stroke: rgba(26, 26, 26, 0.14);
+      stroke-width: 1;
+    }
+
+    .flow-svg .pill-bg--warn {
+      fill: #fdf4f1;
+      stroke: rgba(184, 74, 45, 0.35);
+      stroke-width: 1;
+    }
+
+    .flow-svg .pill-bg--accent {
+      fill: #eef4f3;
+      stroke: rgba(31, 81, 76, 0.32);
+      stroke-width: 1;
+    }
+
+    /* Interactive Checklist (Section 13) */
+    .checklist-shell {
+      max-width: var(--max-copy);
+      margin: 24px auto 28px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--rule);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .checklist-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--rule);
+    }
+
+    .checklist-status {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    .checklist-reset {
+      appearance: none;
+      border: 1px solid var(--rule-strong);
+      background: transparent;
+      color: var(--ink-muted);
+      font-family: var(--font-sans);
+      font-size: 12.5px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: color 0.15s ease, border-color 0.15s ease;
+    }
+
+    .checklist-reset:hover {
+      color: var(--ink);
+      border-color: var(--ink);
+    }
+
+    .checklist-items {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 10px;
+    }
+
+    .checklist-item label {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 14px;
+      border: 1px solid var(--rule);
+      border-radius: var(--radius-sm);
+      background: var(--bg);
+      cursor: pointer;
+      transition: border-color 0.18s ease, background-color 0.18s ease;
+    }
+
+    .checklist-item label:hover {
+      border-color: var(--accent-border);
+    }
+
+    .checklist-item input[type="checkbox"] {
+      appearance: none;
+      -webkit-appearance: none;
+      flex-shrink: 0;
+      width: 20px;
+      height: 20px;
+      margin: 2px 0 0;
+      border: 1.5px solid var(--rule-strong);
+      border-radius: 5px;
+      background: var(--bg-elevated);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      transition: background-color 0.16s ease, border-color 0.16s ease;
+    }
+
+    .checklist-item input[type="checkbox"]::after {
+      content: "";
+      width: 10px;
+      height: 6px;
+      border-left: 2px solid var(--bg);
+      border-bottom: 2px solid var(--bg);
+      transform: rotate(-45deg) scale(0);
+      margin-top: -2px;
+      transition: transform 0.15s ease;
+    }
+
+    .checklist-item input[type="checkbox"]:checked {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .checklist-item input[type="checkbox"]:checked::after {
+      transform: rotate(-45deg) scale(1);
+    }
+
+    .checklist-item input[type="checkbox"]:checked + span {
+      color: var(--ink-muted);
+      text-decoration: line-through;
+      text-decoration-color: rgba(26, 26, 26, 0.35);
+    }
+
+    /* Reference Cards (Section 14) */
+    .ref-list {
+      list-style: none;
+      margin: 20px 0 0;
+      padding: 0;
+      display: grid;
+      gap: 10px;
+    }
+
+    .ref-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 14px 16px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--rule);
+      border-radius: var(--radius-sm);
+      text-decoration: none;
+      color: var(--ink);
+      transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .ref-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-sm);
+      color: var(--ink);
+    }
+
+    .ref-main {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+    }
+
+    .ref-idx {
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--accent);
+      flex-shrink: 0;
+    }
+
+    .ref-title {
+      font-weight: 600;
+      font-size: 15.5px;
+    }
+
+    .ref-domain {
+      flex-shrink: 0;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--ink-muted);
+      background: var(--bg-muted);
+      padding: 3px 9px;
+      border-radius: 999px;
+      border: 1px solid var(--rule);
+    }
+
+    /* Lightbox Overlay */
+    .lightbox {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: rgba(26, 26, 26, 0.88);
+      backdrop-filter: blur(6px);
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      cursor: zoom-out;
+    }
+
+    .lightbox.is-open {
+      display: flex;
+    }
+
+    .lightbox img {
+      max-width: 96vw;
+      max-height: 92vh;
+      width: auto;
+      height: auto;
+      border-radius: 8px;
+      box-shadow: 0 12px 48px rgba(0, 0, 0, 0.4);
+      background: var(--bg);
+    }
+
+    .lightbox-svg-stage {
+      display: none;
+      max-width: 94vw;
+      max-height: 88vh;
+      overflow: auto;
+      background: var(--bg);
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 12px 48px rgba(0, 0, 0, 0.4);
+      cursor: default;
+    }
+
+    .lightbox-svg-stage.is-active {
+      display: block;
+    }
+
+    .lightbox-svg-stage svg {
+      width: min(760px, 86vw);
+      height: auto;
+    }
+
+    .lightbox .lightbox-hint {
+      position: absolute;
+      top: 20px;
+      right: 24px;
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 14px;
+      pointer-events: none;
+    }
+
+    /* Footer */
+    footer.doc-footer {
+      max-width: var(--max-copy);
+      margin: 0 auto;
+      padding: 28px 24px 64px;
+      border-top: 1px solid var(--rule);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      font-size: 13.5px;
+      color: var(--ink-muted);
+    }
+
+    .back-top {
+      font-size: 13.5px;
+      font-weight: 600;
+      text-decoration: none;
+      color: var(--ink-soft);
+      padding: 6px 12px;
+      border: 1px solid var(--rule);
+      border-radius: 999px;
+      background: var(--bg-elevated);
+    }
+
+    .back-top:hover {
+      color: var(--ink);
+      border-color: var(--ink);
+    }
+
+    /* Responsive Breakpoints */
+    @media (max-width: 720px) {
+      .dossier-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+
+      /* Transform wide spec tables into mobile vertical cards — zero horizontal scroll */
+      .table-wrap {
+        background: transparent;
+        border: none;
+        box-shadow: none;
+        overflow: visible;
+      }
+
+      table.spec-table,
+      table.spec-table thead,
+      table.spec-table tbody,
+      table.spec-table th,
+      table.spec-table td,
+      table.spec-table tr {
+        display: block;
+      }
+
+      table.spec-table thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+      }
+
+      table.spec-table tbody {
+        display: grid;
+        gap: 12px;
+      }
+
+      table.spec-table tbody tr {
+        background: var(--bg-elevated);
+        border: 1px solid var(--rule);
+        border-radius: var(--radius-md);
+        padding: 12px 15px;
+        box-shadow: var(--shadow-sm);
+      }
+
+      table.spec-table td {
+        padding: 6px 0;
+        border-bottom: 1px dashed var(--rule);
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 3px;
+      }
+
+      table.spec-table td:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+      }
+
+      table.spec-table td::before {
+        content: attr(data-label);
+        font-size: 11.5px;
+        font-weight: 700;
+        color: var(--ink-muted);
+      }
+
+      .cell-key {
+        white-space: normal;
+        font-size: 15.5px;
+        color: var(--accent);
+      }
+
+      .ref-card {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+
+    /* 640px breakpoint synchronized with <picture> source for 9:16 mobile variants */
+    @media (max-width: 640px) {
+      figure.summary-figure {
+        margin: 16px auto 12px;
+        padding: 0 18px;
+      }
+
+      figure.summary-figure img {
+        aspect-ratio: 9 / 16;
+        max-width: 360px;
+      }
+
+      figure.section-figure img {
+        aspect-ratio: 9 / 16;
+      }
+
+      .nav-inner {
+        padding: 0 16px;
+        gap: 10px;
+      }
+
+      .nav-brand {
+        font-size: 12.5px;
+        padding-right: 10px;
+      }
+
+      header.hero {
+        margin: 24px auto 28px;
+        padding: 0 18px;
+        text-align: left;
+      }
+
+      article.editorial-body {
+        padding: 0 18px 64px;
+      }
+
+      section.doc-section {
+        padding: 34px 0 8px;
+      }
+
+      .diagram-bar {
+        flex-wrap: wrap;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html {
+        scroll-behavior: auto;
+      }
+      *, *::before, *::after {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body id="top">
+
+  <!-- Top Summary Infographic (first element inside body per specification) -->
+  <figure class="summary-figure">
+    <div class="figure-frame">
+      <picture>
+        <source media="(max-width: 640px)" srcset="images/summary_overview-mobile.png">
+        <img src="images/summary_overview.png" alt="一圖看懂：可信任 AI 執行平台架構總覽圖，呈現控制與執行分離、授權四防線、去重對帳與離線六階段路線">
+      </picture>
+    </div>
+    <figcaption>一圖看懂：控制面（Lumina）與執行面（Hermes）分離、四道授權防線、失敗對帳與六階段離線演進全貌（點擊圖面可放大檢視）</figcaption>
+  </figure>
+
+  <!-- Compact Sticky Section Navigation -->
+  <nav class="site-nav" aria-label="章節導覽">
+    <div class="nav-progress" id="navProgress"></div>
+    <div class="nav-inner">
+      <a class="nav-brand" href="#top">
+        <span class="nav-brand-dot" aria-hidden="true"></span>
+        <span>Lumina 平台規劃</span>
+      </a>
+      <div class="nav-links" id="navLinks">
+        <a href="#sec-1">01 需求前提</a>
+        <a href="#sec-2">02 核心判斷</a>
+        <a href="#sec-3">03 元件邊界</a>
+        <a href="#sec-4">04 任務契約</a>
+        <a href="#sec-5">05 操作主流程</a>
+        <a href="#sec-6">06 授權規則</a>
+        <a href="#sec-7">07 去重恢復</a>
+        <a href="#sec-8">08 離線邊界</a>
+        <a href="#sec-9">09 CLI 整合</a>
+        <a href="#sec-10">10 日常作業</a>
+        <a href="#sec-11">11 信任驗收</a>
+        <a href="#sec-12">12 建置路線</a>
+        <a href="#sec-13">13 首案清單</a>
+        <a href="#sec-14">14 綜合案例</a>
+        <a href="#sec-15">15 參考資料</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <header class="hero">
+    <div class="hero-kicker">LUMINA AI CREW · 2026-11-13</div>
+    <h1>
+      <span class="h1-line">可信任 AI 執行平台：</span>
+      <span class="h1-line">需求分析與作業流程規劃</span>
+    </h1>
+    <p class="hero-lead">從建立完整使用者操作流程出發，反推任務生命週期、授權核銷、操作去重與離線能力的責任邊界，讓模型提出計畫、由平台穩固掌握權限。</p>
+    <div class="dossier-grid" role="list" aria-label="文件基本資訊">
+      <div class="dossier-item" role="listitem">
+        <span class="dossier-label">規劃對象</span>
+        <span class="dossier-value">Lumina AI Crew</span>
+      </div>
+      <div class="dossier-item" role="listitem">
+        <span class="dossier-label">發布日期</span>
+        <span class="dossier-value">2026-11-13</span>
+      </div>
+      <div class="dossier-item" role="listitem">
+        <span class="dossier-label">文件性質</span>
+        <span class="dossier-value">架構規劃建議（尚非實作現況稽核）</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Article -->
+  <main>
+    <article class="editorial-body">
+
+      <!-- Section 1 -->
+      <section class="doc-section" id="sec-1">
+        <div class="copy-col">
+          <div class="section-eyebrow">SECTION 01</div>
+          <h2>1. 原始需求與規劃前提</h2>
+          <p>使用者最初希望擁有具備基本功能、不完全依賴網路的 AI，後續發展為以 AI 核心平台透過 Agent 執行其他小專案工具。目前以四個 CLI 充當 AI 核心，正在嘗試建立具備「有效、未過期、身分綁定、單次使用」特性的可信任 AI 執行框架。</p>
+          <p>本規劃以建立完整使用者操作流程為起點，再反推各項作業與元件責任。</p>
+          <p>規劃前提：個人使用優先、未來可增加使用者；保留現有專案；逐步建置。原始架構圖未揭露實際程式、四個 CLI 的名稱及 P6 定義，因此以下區分現況可見資訊與建議設計，不假設現有系統已完成任何安全機制。</p>
+          <p class="source-note">說明：依據原始系統架構圖整理；以下文字與表格皆可獨立閱讀。</p>
+        </div>
+      </section>
+
+      <!-- Section 2 -->
+      <section class="doc-section" id="sec-2">
+        <div class="copy-col">
+          <div class="section-eyebrow">SECTION 02</div>
+          <h2>2. 核心判斷</h2>
+          <div class="callout-statement">最需要建立的是一套能掌握任務生命週期的核心平台：AI 負責理解與提出行動，平台負責授權、限制執行、保存狀態，以及確認結果。</div>
+          <p>原本的兩個目標可以整合為：</p>
+          <blockquote class="thesis-quote">
+            <p>建立一個以本機基本能力為底座、連網後可以擴充，由使用者掌握權限，能調用各專案工具，並在中斷後恢復工作的 AI 任務平台。</p>
+          </blockquote>
+          <p>真正重要的「核心」，是無論換哪個模型、CLI 或執行主機，任務與權限仍然受使用者掌握。</p>
+          <p>系統架構已將 Lumina 的控制面與 Hermes 的執行面分開，這是重要的架構方向。但目前盤點偏向元件與資源清冊，還需要明確回答以下五個核心問題：</p>
+          <div class="inquiry-grid">
+            <div class="inquiry-card">
+              <span class="inquiry-num">Q1</span>
+              <span>使用者交付任務後，系統承諾完成什麼？</span>
+            </div>
+            <div class="inquiry-card">
+              <span class="inquiry-num">Q2</span>
+              <span>系統會讀取哪些資料、修改哪些東西？</span>
+            </div>
+            <div class="inquiry-card">
+              <span class="inquiry-num">Q3</span>
+              <span>哪些事情可以自行執行，哪些需要使用者決定？</span>
+            </div>
+            <div class="inquiry-card">
+              <span class="inquiry-num">Q4</span>
+              <span>斷網、程式重啟或工具失敗後，任務在哪裡？</span>
+            </div>
+            <div class="inquiry-card">
+              <span class="inquiry-num">Q5</span>
+              <span>系統表示完成時，有什麼證據？</span>
+            </div>
+          </div>
+          <p>應從這些問題反推作業流程，再安排各元件的具體職責。</p>
+        </div>
+      </section>
+
+      <!-- Section 3 -->
+      <section class="doc-section" id="sec-3">
+        <div class="copy-col">
+          <div class="section-eyebrow">SECTION 03</div>
+          <h2>3. 元件角色與責任邊界</h2>
+        </div>
+
+        <div class="table-wrap">
+          <table class="spec-table">
+            <thead>
+              <tr>
+                <th>現有元件</th>
+                <th>建議定位</th>
+                <th>必須釐清的邊界</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="cell-key" data-label="現有元件">Lumina</td>
+                <td data-label="建議定位">任務入口、政策、授權、任務狀態及稽核</td>
+                <td data-label="必須釐清的邊界">模型可以提出計畫，但不能自行變更政策或核發權限</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="現有元件">Hermes</td>
+                <td data-label="建議定位">受控執行器，執行已核准的具體步驟</td>
+                <td data-label="必須釐清的邊界">不持有無限制權限，不自行擴大任務範圍</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="現有元件">四個 CLI</td>
+                <td data-label="建議定位">可替換的推理或受限工作者</td>
+                <td data-label="必須釐清的邊界">透過轉接層整合；不能繞過平台直接操作所有資源</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="現有元件">Multi-AI</td>
+                <td data-label="建議定位">選用的評議、交叉檢查能力</td>
+                <td data-label="必須釐清的邊界">多數決不代表事實正確，也不產生授權</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="現有元件">Scout</td>
+                <td data-label="建議定位">定期探索 AI 工具的專案</td>
+                <td data-label="必須釐清的邊界">發現工具後進入評估流程，不直接安裝到核心</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="現有元件">Knowledge Base</td>
+                <td data-label="建議定位">有來源、版本與存取範圍的知識服務</td>
+                <td data-label="必須釐清的邊界">將來源資料、AI 推論與核准知識分開</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="現有元件">NotebookLM</td>
+                <td data-label="建議定位">特定任務使用的外部服務</td>
+                <td data-label="必須釐清的邊界">不作為離線基本能力的必要依賴</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="現有元件">台股、Costco</td>
+                <td data-label="建議定位">各自獨立的業務專案</td>
+                <td data-label="必須釐清的邊界">透過明確工具介面接入平台</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="現有元件">Mac、Oracle ARM、Windows</td>
+                <td data-label="建議定位">部署與運算節點</td>
+                <td data-label="必須釐清的邊界">主機資源多寡不直接代表模型效能或安全程度</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="現有元件">FortiSIEM</td>
+                <td data-label="建議定位">若用於監控，可作為日誌下游</td>
+                <td data-label="必須釐清的邊界">目前資訊不足，不能假設它已承擔平台稽核</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <figure class="section-figure">
+          <picture>
+            <source media="(max-width: 640px)" srcset="images/sec3_architecture-mobile.png">
+            <img src="images/sec3_architecture.png" alt="元件責任邊界圖：呈現 Lumina 控制面、四個 CLI 轉接層與 Hermes 執行閘道，以及隔離接入的專案與部署節點">
+          </picture>
+          <figcaption>圖 3-1：控制面與執行面邊界切分——將四個 CLI 收斂至轉接層與受限執行閘道，禁止繞過授權直接操作系統資源</figcaption>
+        </figure>
+
+        <div class="copy-col">
+          <p><strong>四個 CLI 可以先保留；優先改變它們與平台的關係。</strong></p>
+          <p>若 CLI 本身帶有 shell、檔案與網路能力，而且仍用使用者的個人帳號自由執行，Lumina 前面的授權流程就可能被繞過。應選擇：</p>
+          <ul class="clean-list">
+            <li>將 CLI 當成只產生結構化計畫的推理端；或</li>
+            <li>將 CLI 當成受隔離、受限權限的工作者，所有有影響的操作都經過執行閘道。</li>
+          </ul>
+          <p>這是第一個應檢查的實作問題。</p>
+          <p>Anthropic 對 workflow 與 agent 的區分適合此情境：已知流程由程式協調，需要探索的部分再讓模型動態決定。建議先讓既定任務可靠完成，再增加自主探索範圍。<a href="https://www.anthropic.com/research/building-effective-agents" target="_blank" rel="noopener noreferrer">參考：Building effective agents</a></p>
+        </div>
+      </section>
+
+      <!-- Section 4 -->
+      <section class="doc-section" id="sec-4">
+        <div class="copy-col">
+          <div class="section-eyebrow">SECTION 04</div>
+          <h2>4. 任務契約</h2>
+          <p>以「整理本週 AI 工具，產出 HTML 報告」為例，平台接到的應該是可追蹤的任務。</p>
+        </div>
+
+        <div class="table-wrap">
+          <table class="spec-table">
+            <thead>
+              <tr>
+                <th>欄位</th>
+                <th>範例</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="cell-key" data-label="欄位">目標</td>
+                <td data-label="範例">整理本週值得評估的 AI 工具</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="欄位">資料範圍</td>
+                <td data-label="範例">已核准來源與本機知識庫</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="欄位">新鮮度要求</td>
+                <td data-label="範例">本週資訊；離線時只能產出歷史資料草稿</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="欄位">允許操作</td>
+                <td data-label="範例">搜尋、讀取、建立報告草稿</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="欄位">額外確認事項</td>
+                <td data-label="範例">上傳私人資料、對外發布、安裝工具</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="欄位">成果</td>
+                <td data-label="範例">HTML 報告、來源清單、資料時間及限制</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="欄位">完成標準</td>
+                <td data-label="範例">檔案存在、可開啟、重要敘述有來源</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="欄位">執行限制</td>
+                <td data-label="範例">時間、費用、最大步驟數與重試次數</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="copy-col">
+          <div class="callout-statement">聊天紀錄可以保留，但任務狀態不能只存在聊天裡。</div>
+          <p>使用者改變範圍時，要產生新的計畫版本；授權必須知道自己核准的是哪個版本。</p>
+        </div>
+      </section>
+
+      <!-- Section 5 -->
+      <section class="doc-section" id="sec-5">
+        <div class="copy-col">
+          <div class="section-eyebrow">SECTION 05</div>
+          <h2>5. 使用者操作主流程</h2>
+          <p>此圖描述任務從提出、計畫、授權、執行到驗收的完整生命週期。</p>
+        </div>
+
+        <div class="diagram-card">
+          <div class="diagram-bar">
+            <span>流程圖 5-1：使用者操作主流程（可點擊放大・支援離線向量檢視）</span>
+            <button type="button" class="diagram-zoom-btn" data-diagram="svg-main">放大檢視流程圖</button>
+          </div>
+          <div class="diagram-canvas">
+            <div class="diagram-svg-wrap" id="svg-main">
+              <svg class="flow-svg" viewBox="0 0 760 1042" role="img" aria-label="流程圖 5-1：使用者操作主流程">
+                <defs>
+                  <marker id="arr-m" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+                    <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#3f3b36"/>
+                  </marker>
+                  <marker id="arr-m-teal" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+                    <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#1f514c"/>
+                  </marker>
+                  <marker id="arr-m-warn" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+                    <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#b84a2d"/>
+                  </marker>
+                </defs>
+
+                <!-- Connectors -->
+                <path class="edge-line--accent" d="M380,68 L380,96" marker-end="url(#arr-m-teal)"/>
+                <path class="edge-line--accent" d="M380,144 L380,172" marker-end="url(#arr-m-teal)"/>
+                <path class="edge-line--accent" d="M380,220 L380,248" marker-end="url(#arr-m-teal)"/>
+
+                <!-- D -- 否 --> E -->
+                <path class="edge-line--warn" d="M270,290 L155,290 L155,372" marker-end="url(#arr-m-warn)"/>
+                <!-- E -- 修改或環境恢復 --> C -->
+                <path class="edge-line" d="M85,376 L85,196 L204,196" marker-end="url(#arr-m)"/>
+                <!-- E -- 取消 --> Z -->
+                <path class="edge-line--warn" d="M145,436 L145,1004 L258,1004" marker-end="url(#arr-m-warn)"/>
+
+                <!-- D -- 是 --> F -->
+                <path class="edge-line--accent" d="M380,328 L380,350 L470,350 L470,372" marker-end="url(#arr-m-teal)"/>
+                <!-- F --> G -->
+                <path class="edge-line--accent" d="M470,428 L470,466" marker-end="url(#arr-m-teal)"/>
+                <!-- G -- 禁止 --> E -->
+                <path class="edge-line--warn" d="M380,504 L210,504 L210,440" marker-end="url(#arr-m-warn)"/>
+                <!-- G -- 需要確認 --> H -->
+                <path class="edge-line" d="M470,540 L470,578" marker-end="url(#arr-m)"/>
+                <!-- G -- 已有有效授權 --> I -->
+                <path class="edge-line--accent" d="M560,504 L636,504 L636,694 L616,694" marker-end="url(#arr-m-teal)"/>
+
+                <!-- H -- 修改 --> B -->
+                <path class="edge-line" d="M602,608 L674,608 L674,126 L546,126" marker-end="url(#arr-m)"/>
+                <!-- H -- 拒絕 --> Z -->
+                <path class="edge-line--warn" d="M338,608 L232,608 L232,990 L258,990" marker-end="url(#arr-m-warn)"/>
+                <!-- H -- 核准 --> I -->
+                <path class="edge-line--accent" d="M470,634 L470,664" marker-end="url(#arr-m-teal)"/>
+
+                <!-- I -> J -> K -> L -> Z -->
+                <path class="edge-line--accent" d="M470,718 L470,740" marker-end="url(#arr-m-teal)"/>
+                <path class="edge-line--accent" d="M470,790 L470,812" marker-end="url(#arr-m-teal)"/>
+                <path class="edge-line--accent" d="M470,862 L470,880" marker-end="url(#arr-m-teal)"/>
+                <path class="edge-line--accent" d="M470,944 L470,974" marker-end="url(#arr-m-teal)"/>
+                <!-- L -- 修正 --> B -->
+                <path class="edge-line" d="M558,914 L718,914 L718,112 L546,112" marker-end="url(#arr-m)"/>
+
+                <!-- Nodes -->
+                <rect class="node-terminal" x="220" y="20" width="320" height="48" rx="24"/>
+                <text x="380" y="49" text-anchor="middle" fill="#f9f7f4" font-size="14.5" font-weight="700">使用者開啟平台並驗證身分</text>
+
+                <rect class="node-card" x="220" y="96" width="320" height="48" rx="10"/>
+                <text x="380" y="125" text-anchor="middle" fill="#1a1a1a" font-size="14.5" font-weight="600">選擇專案並輸入任務與限制</text>
+
+                <rect class="node-card" x="210" y="172" width="340" height="48" rx="10"/>
+                <text x="380" y="201" text-anchor="middle" fill="#1a1a1a" font-size="14.5" font-weight="600">系統檢查模型、資料、網路與工具</text>
+
+                <!-- D diamond -->
+                <polygon class="node-decision" points="380,252 492,290 380,328 268,290"/>
+                <text x="380" y="295" text-anchor="middle" fill="#1f514c" font-size="14" font-weight="700">目前可完成任務嗎</text>
+
+                <!-- E warn node -->
+                <rect class="node-warn" x="38" y="376" width="232" height="60" rx="10"/>
+                <text x="154" y="402" text-anchor="middle" fill="#1a1a1a" font-size="13.5" font-weight="600">使用者選擇縮小範圍、</text>
+                <text x="154" y="423" text-anchor="middle" fill="#1a1a1a" font-size="13.5" font-weight="600">等待或取消</text>
+
+                <!-- F -->
+                <rect class="node-card" x="312" y="376" width="316" height="52" rx="10"/>
+                <text x="470" y="407" text-anchor="middle" fill="#1a1a1a" font-size="14" font-weight="600">顯示執行計畫、資料用途與預期成果</text>
+
+                <!-- G diamond -->
+                <polygon class="node-decision" points="470,470 562,504 470,538 378,504"/>
+                <text x="470" y="509" text-anchor="middle" fill="#1f514c" font-size="14" font-weight="700">政策判定</text>
+
+                <!-- H -->
+                <rect class="node-card" x="338" y="582" width="264" height="52" rx="10"/>
+                <text x="470" y="613" text-anchor="middle" fill="#1a1a1a" font-size="14" font-weight="600">使用者核准、修改或拒絕</text>
+
+                <!-- I -->
+                <rect class="node-card" x="330" y="668" width="280" height="50" rx="10"/>
+                <text x="470" y="698" text-anchor="middle" fill="#1a1a1a" font-size="14" font-weight="600">建立授權並執行受控步驟</text>
+
+                <!-- J -->
+                <rect class="node-card" x="316" y="742" width="308" height="48" rx="10"/>
+                <text x="470" y="771" text-anchor="middle" fill="#1a1a1a" font-size="14" font-weight="600">顯示進度並處理暫停、取消與異常</text>
+
+                <!-- K -->
+                <rect class="node-card" x="316" y="814" width="308" height="48" rx="10"/>
+                <text x="470" y="843" text-anchor="middle" fill="#1a1a1a" font-size="14" font-weight="600">驗證結果並交付成果與變更紀錄</text>
+
+                <!-- L diamond -->
+                <polygon class="node-decision" points="470,882 558,914 470,946 382,914"/>
+                <text x="470" y="919" text-anchor="middle" fill="#1f514c" font-size="14" font-weight="700">使用者驗收</text>
+
+                <!-- Z terminal -->
+                <rect class="node-terminal" x="264" y="978" width="272" height="46" rx="23"/>
+                <text x="400" y="1006" text-anchor="middle" fill="#f9f7f4" font-size="14.5" font-weight="700">保存紀錄並結束</text>
+
+                <!-- Edge Label Pills (drawn last so they stay cleanly readable above lines) -->
+                <rect class="pill-bg--warn" x="184" y="277" width="34" height="24" rx="12"/>
+                <text x="201" y="294" text-anchor="middle" fill="#b84a2d" font-size="12" font-weight="700">否</text>
+
+                <rect class="pill-bg" x="25" y="274" width="118" height="24" rx="12"/>
+                <text x="84" y="291" text-anchor="middle" fill="#3f3b36" font-size="12" font-weight="600">修改或環境恢復</text>
+
+                <rect class="pill-bg--warn" x="121" y="704" width="48" height="24" rx="12"/>
+                <text x="145" y="721" text-anchor="middle" fill="#b84a2d" font-size="12" font-weight="700">取消</text>
+
+                <rect class="pill-bg--accent" x="408" y="338" width="34" height="24" rx="12"/>
+                <text x="425" y="355" text-anchor="middle" fill="#1f514c" font-size="12" font-weight="700">是</text>
+
+                <rect class="pill-bg--warn" x="266" y="492" width="48" height="24" rx="12"/>
+                <text x="290" y="509" text-anchor="middle" fill="#b84a2d" font-size="12" font-weight="700">禁止</text>
+
+                <rect class="pill-bg" x="434" y="547" width="72" height="24" rx="12"/>
+                <text x="470" y="564" text-anchor="middle" fill="#3f3b36" font-size="12" font-weight="600">需要確認</text>
+
+                <rect class="pill-bg--accent" x="586" y="596" width="98" height="24" rx="12"/>
+                <text x="635" y="613" text-anchor="middle" fill="#1f514c" font-size="12" font-weight="700">已有有效授權</text>
+
+                <rect class="pill-bg" x="650" y="348" width="48" height="24" rx="12"/>
+                <text x="674" y="365" text-anchor="middle" fill="#3f3b36" font-size="12" font-weight="600">修改</text>
+
+                <rect class="pill-bg--warn" x="208" y="778" width="48" height="24" rx="12"/>
+                <text x="232" y="795" text-anchor="middle" fill="#b84a2d" font-size="12" font-weight="700">拒絕</text>
+
+                <rect class="pill-bg--accent" x="446" y="638" width="48" height="24" rx="12"/>
+                <text x="470" y="655" text-anchor="middle" fill="#1f514c" font-size="12" font-weight="700">核准</text>
+
+                <rect class="pill-bg--accent" x="446" y="948" width="48" height="22" rx="11"/>
+                <text x="470" y="963" text-anchor="middle" fill="#1f514c" font-size="12" font-weight="700">接受</text>
+
+                <rect class="pill-bg" x="694" y="520" width="48" height="24" rx="12"/>
+                <text x="718" y="537" text-anchor="middle" fill="#3f3b36" font-size="12" font-weight="600">修正</text>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="copy-col">
+          <p>此圖假設平台已有身分與工具設定。低風險、符合既有授權的任務可以直接執行；不應每讀一個檔案就詢問一次。禁止的動作則不能靠按下「同意」直接放行。</p>
+          <h3>主要操作畫面</h3>
+        </div>
+
+        <div class="table-wrap">
+          <table class="spec-table">
+            <thead>
+              <tr>
+                <th>畫面</th>
+                <th>使用者要完成的事情</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="cell-key" data-label="畫面">首頁</td>
+                <td data-label="使用者要完成的事情">知道目前可用能力、進行中任務及待處理事項</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="畫面">任務建立頁</td>
+                <td data-label="使用者要完成的事情">說明目標、資料範圍與成果要求</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="畫面">計畫確認頁</td>
+                <td data-label="使用者要完成的事情">看懂將做哪些事、資料是否離開本機、會造成哪些變更</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="畫面">執行頁</td>
+                <td data-label="使用者要完成的事情">查看進度、暫停、取消或補充必要資訊</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="畫面">成果頁</td>
+                <td data-label="使用者要完成的事情">查看產物、來源、變更、驗證結果及未完成項目</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="畫面">管理頁</td>
+                <td data-label="使用者要完成的事情">管理專案、工具、身分、授權與排程</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="copy-col">
+          <p>介面應呈現「將上傳這三份文件到哪個服務」，而不是要求使用者理解 token、scope 或工具呼叫格式。</p>
+        </div>
+      </section>
+
+      <!-- Section 6 -->
+      <section class="doc-section" id="sec-6">
+        <div class="copy-col">
+          <div class="section-eyebrow">SECTION 06</div>
+          <h2>6. 可信任授權的具體規則</h2>
+        </div>
+
+        <div class="table-wrap">
+          <table class="spec-table">
+            <thead>
+              <tr>
+                <th>要求</th>
+                <th>實際需要驗證什麼</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="cell-key" data-label="要求"><span class="tag-pill">有效</span></td>
+                <td data-label="實際需要驗證什麼">可信任來源核發、內容未被修改、適用目前政策、未撤銷</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="要求"><span class="tag-pill">未過期</span></td>
+                <td data-label="實際需要驗證什麼">已到生效時間、尚未過期；驗證端時間可信</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="要求"><span class="tag-pill">身分綁定</span></td>
+                <td data-label="實際需要驗證什麼">誰提出任務、誰核准、哪個執行者可以使用，各自可辨識</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="要求"><span class="tag-pill">單次使用</span></td>
+                <td data-label="實際需要驗證什麼">核銷紀錄持久保存；兩個執行者同時提交時只能有一個取得執行權</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <figure class="section-figure">
+          <picture>
+            <source media="(max-width: 640px)" srcset="images/sec6_trust_grant-mobile.png">
+            <img src="images/sec6_trust_grant.png" alt="可信任授權四大驗證關卡與動作資源細粒度綁定對照圖：有效、未過期、身分綁定、單次使用與參數核對">
+          </picture>
+          <figcaption>圖 6-1：可信任授權四大關卡與動作參數細粒度綁定——拒絕「允許寫檔」這類過寬權限，確保換檔或重放立即失效</figcaption>
+        </figure>
+
+        <div class="copy-col">
+          <p><strong>授權還要綁定具體動作與資源範圍。</strong></p>
+          <p>「允許寫檔」太寬。比較完整的授權是：</p>
+          <blockquote class="thesis-quote">
+            <p>允許指定執行者，在指定時間內，依任務 T 的計畫第 3 版，將指定內容寫入專案 A 的指定報告路徑一次。</p>
+          </blockquote>
+          <p>授權至少要對應：</p>
+          <ul class="clean-list">
+            <li>任務、步驟及計畫版本。</li>
+            <li>工具與工具版本。</li>
+            <li>動作參數或其標準化摘要。</li>
+            <li>允許讀寫的資源。</li>
+            <li>執行者身分與預期接收端。</li>
+            <li>生效、到期、撤銷及核銷狀態。</li>
+          </ul>
+          <p>例如使用者核准上傳文件 A，執行前卻換成文件 B，即使授權還沒過期，也不能繼續使用。重要資源還要在實際操作時檢查版本，避免核准後內容已經改變。</p>
+          <div class="callout-warn"><strong>在 token 裡寫上 <code>user_id</code>，不等於持有者已被驗證。</strong> 如果任何取得 token 的程式都能使用，它仍可能被冒用。需要依環境採用受驗證的本機程序身分、受保護通道或持有金鑰的證明。DPoP 是 OAuth 中將 token 與持有者金鑰綁定的標準機制之一，但不會替平台完成業務動作的單次核銷。<a href="https://www.rfc-editor.org/rfc/rfc9449.html" target="_blank" rel="noopener noreferrer">參考：RFC 9449</a></div>
+          <p>第一版若只有單機，使用資料庫保存授權紀錄與不可猜測的授權識別碼，就可以建立可測試的機制；不用一開始就自行設計跨主機密碼協定。</p>
+        </div>
+      </section>
+
+      <!-- Section 7 -->
+      <section class="doc-section" id="sec-7">
+        <div class="copy-col">
+          <div class="section-eyebrow">SECTION 07</div>
+          <h2>7. 執行、去重與失敗恢復</h2>
+          <p>真正容易出錯的地方，是授權核銷之後。假設 Hermes 執行「發布報告」：</p>
+          <ol class="clean-list">
+            <li>平台核銷授權。</li>
+            <li>外部服務完成發布。</li>
+            <li>回覆途中斷線。</li>
+            <li>Hermes 沒收到成功訊息。</li>
+          </ol>
+          <p>這時重新發布，可能產生兩份；直接標示失敗，也不符合真實狀況。</p>
+          <div class="callout-statement">單次授權、操作去重、失敗恢復，是三項不同的工作。</div>
+          <p>以下子流程明確處理「結果不確定」。</p>
+        </div>
+
+        <div class="diagram-card">
+          <div class="diagram-bar">
+            <span>流程圖 7-1：授權核銷、操作去重與不確定結果對帳流程（可點擊放大・支援離線向量檢視）</span>
+            <button type="button" class="diagram-zoom-btn" data-diagram="svg-recovery">放大檢視流程圖</button>
+          </div>
+          <div class="diagram-canvas">
+            <div class="diagram-svg-wrap" id="svg-recovery">
+              <svg class="flow-svg" viewBox="0 0 760 865" role="img" aria-label="流程圖 7-1：授權核銷、操作去重與不確定結果對帳流程">
+                <defs>
+                  <marker id="arr-r" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+                    <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#3f3b36"/>
+                  </marker>
+                  <marker id="arr-r-teal" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+                    <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#1f514c"/>
+                  </marker>
+                  <marker id="arr-r-warn" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+                    <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#b84a2d"/>
+                  </marker>
+                </defs>
+
+                <!-- Connectors -->
+                <path class="edge-line--accent" d="M380,68 L380,96" marker-end="url(#arr-r-teal)"/>
+                <path class="edge-line--accent" d="M380,146 L380,174" marker-end="url(#arr-r-teal)"/>
+
+                <!-- C -- 否 --> X -->
+                <path class="edge-line--warn" d="M258,212 L130,212 L130,280" marker-end="url(#arr-r-warn)"/>
+                <!-- C -- 是 --> D -->
+                <path class="edge-line--accent" d="M380,248 L380,280" marker-end="url(#arr-r-teal)"/>
+                <!-- D --> E -->
+                <path class="edge-line--accent" d="M406,336 L406,364" marker-end="url(#arr-r-teal)"/>
+
+                <!-- E -- 已核銷 --> F -->
+                <path class="edge-line" d="M318,398 L160,398 L160,464" marker-end="url(#arr-r)"/>
+                <!-- E -- 本次成功 --> G -->
+                <path class="edge-line--accent" d="M406,432 L406,450 L470,450 L470,464" marker-end="url(#arr-r-teal)"/>
+
+                <!-- F --> H & G --> H -->
+                <path class="edge-line" d="M160,520 L160,544 L344,544 L344,572" marker-end="url(#arr-r)"/>
+                <path class="edge-line--accent" d="M470,520 L470,544 L416,544 L416,572" marker-end="url(#arr-r-teal)"/>
+
+                <!-- H --> I / J / K -->
+                <path class="edge-line--accent" d="M284,598 L140,598 L140,676" marker-end="url(#arr-r-teal)"/>
+                <path class="edge-line--warn" d="M380,634 L380,676" marker-end="url(#arr-r-warn)"/>
+                <path class="edge-line--warn" d="M476,598 L616,598 L616,676" marker-end="url(#arr-r-warn)"/>
+
+                <!-- K --> H reconciliation loop -->
+                <path class="edge-line--warn" d="M720,708 L742,708 L742,584 L468,584" marker-end="url(#arr-r-warn)"/>
+
+                <!-- I --> L -->
+                <path class="edge-line--accent" d="M140,734 L140,782" marker-end="url(#arr-r-teal)"/>
+
+                <!-- Nodes -->
+                <rect class="node-card" x="210" y="20" width="340" height="48" rx="10"/>
+                <text x="380" y="49" text-anchor="middle" fill="#1a1a1a" font-size="14.5" font-weight="600">取出下一步與凍結的動作規格</text>
+
+                <rect class="node-card" x="210" y="98" width="340" height="48" rx="10"/>
+                <text x="380" y="127" text-anchor="middle" fill="#1a1a1a" font-size="14.5" font-weight="600">檢查執行者、政策與資源版本</text>
+
+                <!-- C diamond -->
+                <polygon class="node-decision" points="380,176 502,212 380,248 258,212"/>
+                <text x="380" y="217" text-anchor="middle" fill="#1f514c" font-size="14" font-weight="700">符合授權與前置條件嗎</text>
+
+                <!-- X warn -->
+                <rect class="node-warn" x="26" y="284" width="208" height="58" rx="10"/>
+                <text x="130" y="309" text-anchor="middle" fill="#1a1a1a" font-size="13.5" font-weight="600">暫停並要求重新規劃</text>
+                <text x="130" y="329" text-anchor="middle" fill="#1a1a1a" font-size="13.5" font-weight="600">或授權</text>
+
+                <!-- D -->
+                <rect class="node-card" x="258" y="284" width="296" height="52" rx="10"/>
+                <text x="406" y="315" text-anchor="middle" fill="#1a1a1a" font-size="14" font-weight="600">原子核銷 grant 並建立操作紀錄</text>
+
+                <!-- E diamond -->
+                <polygon class="node-decision" points="406,366 494,398 406,430 318,398"/>
+                <text x="406" y="403" text-anchor="middle" fill="#1f514c" font-size="14" font-weight="700">核銷結果</text>
+
+                <!-- F & G -->
+                <rect class="node-card" x="52" y="468" width="216" height="52" rx="10"/>
+                <text x="160" y="499" text-anchor="middle" fill="#1a1a1a" font-size="14" font-weight="600">查詢既有操作狀態</text>
+
+                <rect class="node-card" x="352" y="468" width="236" height="52" rx="10"/>
+                <text x="470" y="499" text-anchor="middle" fill="#1a1a1a" font-size="14" font-weight="600">透過受限工具執行</text>
+
+                <!-- H diamond -->
+                <polygon class="node-decision" points="380,564 478,598 380,632 282,598"/>
+                <text x="380" y="603" text-anchor="middle" fill="#1f514c" font-size="14" font-weight="700">結果是否確定</text>
+
+                <!-- I / J / K -->
+                <rect class="node-card" x="36" y="680" width="208" height="54" rx="10"/>
+                <text x="140" y="712" text-anchor="middle" fill="#1a1a1a" font-size="14" font-weight="600">驗證產物並保存證據</text>
+
+                <rect class="node-warn" x="268" y="680" width="224" height="54" rx="10"/>
+                <text x="380" y="712" text-anchor="middle" fill="#1a1a1a" font-size="14" font-weight="600">依規則補償或重新規劃</text>
+
+                <rect class="node-warn" x="514" y="680" width="206" height="54" rx="10"/>
+                <text x="617" y="712" text-anchor="middle" fill="#1a1a1a" font-size="14" font-weight="600">對帳並禁止盲目重送</text>
+
+                <!-- L terminal -->
+                <rect class="node-terminal" x="38" y="786" width="204" height="48" rx="24"/>
+                <text x="140" y="815" text-anchor="middle" fill="#f9f7f4" font-size="14.5" font-weight="700">更新任務進度</text>
+
+                <!-- Pills -->
+                <rect class="pill-bg--warn" x="172" y="200" width="34" height="24" rx="12"/>
+                <text x="189" y="217" text-anchor="middle" fill="#b84a2d" font-size="12" font-weight="700">否</text>
+
+                <rect class="pill-bg--accent" x="363" y="252" width="34" height="24" rx="12"/>
+                <text x="380" y="269" text-anchor="middle" fill="#1f514c" font-size="12" font-weight="700">是</text>
+
+                <rect class="pill-bg" x="200" y="386" width="64" height="24" rx="12"/>
+                <text x="232" y="403" text-anchor="middle" fill="#3f3b36" font-size="12" font-weight="600">已核銷</text>
+
+                <rect class="pill-bg--accent" x="432" y="432" width="76" height="24" rx="12"/>
+                <text x="470" y="449" text-anchor="middle" fill="#1f514c" font-size="12" font-weight="700">本次成功</text>
+
+                <rect class="pill-bg--accent" x="116" y="622" width="48" height="24" rx="12"/>
+                <text x="140" y="639" text-anchor="middle" fill="#1f514c" font-size="12" font-weight="700">成功</text>
+
+                <rect class="pill-bg--warn" x="342" y="642" width="76" height="24" rx="12"/>
+                <text x="380" y="659" text-anchor="middle" fill="#b84a2d" font-size="12" font-weight="700">明確失敗</text>
+
+                <rect class="pill-bg--warn" x="584" y="622" width="64" height="24" rx="12"/>
+                <text x="616" y="639" text-anchor="middle" fill="#b84a2d" font-size="12" font-weight="700">不確定</text>
+
+                <rect class="pill-bg--warn" x="626" y="572" width="96" height="22" rx="11"/>
+                <text x="674" y="587" text-anchor="middle" fill="#b84a2d" font-size="11.5" font-weight="600">對帳迴圈上限</text>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="copy-col">
+          <p>對帳必須有次數與時間上限；無法查明時，保留「待人工處理」，不能無限迴圈。核銷交易若失敗，也應停止執行。</p>
+          <p>實作原則：</p>
+          <ul class="clean-list">
+            <li>核銷授權與建立操作紀錄，在同一個本機資料庫交易完成。</li>
+            <li>對外呼叫若支援冪等鍵，重試同一操作沿用同一個鍵。</li>
+            <li>重送同一筆請求時，優先回傳既有操作狀態。</li>
+            <li>外部結果不明時，先查詢或對帳。</li>
+            <li>必須重新執行時，由政策判斷是否需要新授權。</li>
+            <li>取消任務後，停止派發後續步驟；已發生的外部效果另外處理。</li>
+          </ul>
+          <p>本機資料庫交易不能把任意外部服務也變成同一個交易，因此不能只靠 token 宣稱「所有操作保證只發生一次」。</p>
+          <p>任務狀態需要持久化。LangGraph 文件將執行檢查點與跨任務記憶分開，前者支援中斷恢復，後者保存長期資訊；平台即使不用該框架，也應保留這種區分。<a href="https://docs.langchain.com/oss/python/langgraph/persistence" target="_blank" rel="noopener noreferrer">參考：Persistence</a></p>
+        </div>
+      </section>
+
+      <!-- Section 8 -->
+      <section class="doc-section" id="sec-8">
+        <div class="copy-col">
+          <div class="section-eyebrow">SECTION 08</div>
+          <h2>8. 離線能力與部署邊界</h2>
+        </div>
+
+        <div class="table-wrap">
+          <table class="spec-table">
+            <thead>
+              <tr>
+                <th>情境</th>
+                <th>可以提供的能力</th>
+                <th>必須清楚呈現的限制</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="cell-key" data-label="情境">無外網、本機可用</td>
+                <td data-label="可以提供的能力">本機模型、檔案摘要、快取知識檢索、草稿產生、已安裝工具</td>
+                <td data-label="必須清楚呈現的限制">無法取得即時外部資訊</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="情境">無外網、區網可用</td>
+                <td data-label="可以提供的能力">加上區網內模型、知識庫與工作者</td>
+                <td data-label="必須清楚呈現的限制">依區網服務實際可用性決定</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="情境">外網可用</td>
+                <td data-label="可以提供的能力">加上雲端模型、外部資料與服務</td>
+                <td data-label="必須清楚呈現的限制">依資料傳送政策決定可用項目</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="copy-col">
+          <p><strong>離線能力需要整條基本流程留在本地。</strong></p>
+          <p>包括登入或解鎖方式、政策、任務資料庫、工具設定、模型檔案、必要索引與結果儲存。只把模型放在本機，登入仍依賴外部服務，斷網時仍可能無法使用。</p>
+          <p>若圖中的 Oracle ARM 是雲端主機，它可以提供遠端能力，但不能成為本機離線操作的必要條件。Windows 主機標示 72 cores，也不足以判定適合跑哪種模型；仍需確認記憶體、GPU／VRAM、模型與實測速度。</p>
+          <p>必須接受的分散式限制：</p>
+          <blockquote class="thesis-quote">
+            <p>彼此失聯的多台主機，若能獨立接受同一份授權，就不能只憑簽章確保全域單次使用。</p>
+          </blockquote>
+          <p>第一版採用「一份授權只能由指定節點核銷」，每個節點持久保存自己的核銷紀錄；需要跨節點協調或即時撤銷的操作，在失聯時暫停。離線允許的範圍與期限必須事先定義。</p>
+          <p>例如離線執行台股報告，平台應顯示：</p>
+          <blockquote class="thesis-quote">
+            <p>使用截至某日的本機資料產生草稿；尚未取得今日行情。</p>
+          </blockquote>
+          <p>這是可理解、可依賴的降級行為。</p>
+        </div>
+      </section>
+
+      <!-- Section 9 -->
+      <section class="doc-section" id="sec-9">
+        <div class="copy-col">
+          <div class="section-eyebrow">SECTION 09</div>
+          <h2>9. 四個 CLI 與多模型整合</h2>
+          <p>逐步改成統一的推理介面：</p>
+          <ol class="clean-list">
+            <li>盤點每個 CLI 的登入、網路依賴、輸出格式、工具能力、逾時與取消行為。</li>
+            <li>讓平台以共同格式提交任務，接收計畫、候選答案、工具請求或錯誤。</li>
+            <li>由 Lumina 保存任務進度，不依賴某個 CLI 的對話歷史。</li>
+            <li>切換模型時，傳遞必要的任務摘要、已完成步驟及證據，不假設不同模型能延續同一套隱藏狀態。</li>
+          </ol>
+          <p>Multi-AI 初期採用：</p>
+          <blockquote class="thesis-quote">
+            <p>一個模型提出方案；必要時由另一個模型檢查；程式驗證能驗證的部分；政策決定能不能執行。</p>
+          </blockquote>
+          <p>四方共識可以做研究評議，但不適合成為所有任務的必經關卡。是否增加模型，要用自己的任務集比較成功率、成本與延遲。四個模型可能共用錯誤來源，一致同意仍不能替代證據。</p>
+          <p>若使用 MCP 接入工具，也不能把「有 MCP」當成完整的安全架構。MCP 官方安全文件討論 token passthrough 與 confused deputy 等問題；工具接得通，和權限正確隔離，是不同的驗收項目。<a href="https://modelcontextprotocol.io/docs/draft/tutorials/security/security_best_practices" target="_blank" rel="noopener noreferrer">參考：MCP Security Best Practices</a></p>
+        </div>
+      </section>
+
+      <!-- Section 10 -->
+      <section class="doc-section" id="sec-10">
+        <div class="copy-col">
+          <div class="section-eyebrow">SECTION 10</div>
+          <h2>10. 平台日常作業</h2>
+        </div>
+
+        <div class="table-wrap">
+          <table class="spec-table">
+            <thead>
+              <tr>
+                <th>作業</th>
+                <th>主要步驟</th>
+                <th>應留下的結果</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="cell-key" data-label="作業">首次啟用</td>
+                <td data-label="主要步驟">建立使用者、登錄執行節點、設定本機資料範圍與預設政策</td>
+                <td data-label="應留下的結果">可用能力清單與身分紀錄</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="作業">新增專案</td>
+                <td data-label="主要步驟">定義成果、資料範圍、工具、完成標準</td>
+                <td data-label="應留下的結果">專案設定</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="作業">接入工具</td>
+                <td data-label="主要步驟">定義輸入輸出、權限、副作用、網路需求、錯誤及重試方式</td>
+                <td data-label="應留下的結果">有版本的工具登錄資料</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="作業">提交任務</td>
+                <td data-label="主要步驟">釐清目標、檢查環境、建立計畫</td>
+                <td data-label="應留下的結果">任務與計畫版本</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="作業">授權執行</td>
+                <td data-label="主要步驟">政策判定、必要的人員確認、逐步執行</td>
+                <td data-label="應留下的結果">授權與操作紀錄</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="作業">異常恢復</td>
+                <td data-label="主要步驟">分辨未執行、確定失敗、部分完成與結果不明</td>
+                <td data-label="應留下的結果">恢復或人工處理決策</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="作業">成果驗收</td>
+                <td data-label="主要步驟">檢查檔案、來源、內容與外部狀態</td>
+                <td data-label="應留下的結果">驗證結果及使用者回饋</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="作業">排程任務</td>
+                <td data-label="主要步驟">設定週期、範圍、預算、有效期與停用條件</td>
+                <td data-label="應留下的結果">可撤銷的排程政策</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="作業">工具更新</td>
+                <td data-label="主要步驟">比較版本與權限變更、測試、啟用或退回</td>
+                <td data-label="應留下的結果">版本與相容性紀錄</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="作業">備份恢復</td>
+                <td data-label="主要步驟">備份任務、政策及必要設定，實際測試還原</td>
+                <td data-label="應留下的結果">可恢復性證據</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="copy-col">
+          <p>排程應區分「持續授權的政策」與「每次執行的授權」。例如允許 Scout 每週讀取指定公開來源、產生本機草稿，不代表允許它永久安裝任何新工具。</p>
+          <p>Knowledge Base 的自動 enrich 應先產生帶來源與時間的候選內容，再依規則納入知識庫。網頁、文件和工具回覆都應視為資料；其中夾帶「請關閉限制」的文字，不能成為平台政策。</p>
+        </div>
+      </section>
+
+      <!-- Section 11 -->
+      <section class="doc-section" id="sec-11">
+        <div class="copy-col">
+          <div class="section-eyebrow">SECTION 11</div>
+          <h2>11. 信任邊界與失敗情境驗收</h2>
+        </div>
+
+        <div class="table-wrap">
+          <table class="spec-table">
+            <thead>
+              <tr>
+                <th>情境</th>
+                <th>平台應有的行為</th>
+                <th>要記錄的證據</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="cell-key" data-label="情境">文件要求上傳其他私人資料</td>
+                <td data-label="平台應有的行為"><span class="tag-pill tag-pill--warn">超出原授權即拒絕</span></td>
+                <td data-label="要記錄的證據">被拒動作與來源</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="情境">核准後更換檔案或目的地</td>
+                <td data-label="平台應有的行為"><span class="tag-pill tag-pill--warn">中止並重新評估</span></td>
+                <td data-label="要記錄的證據">版本或參數不符</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="情境">同一授權同時提交兩次</td>
+                <td data-label="平台應有的行為">只有一筆取得執行權</td>
+                <td data-label="要記錄的證據">核銷及重複請求紀錄</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="情境">執行者不是授權對象</td>
+                <td data-label="平台應有的行為"><span class="tag-pill tag-pill--warn">拒絕執行</span></td>
+                <td data-label="要記錄的證據">身分驗證失敗</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="情境">外部呼叫逾時</td>
+                <td data-label="平台應有的行為">標記結果不明並對帳</td>
+                <td data-label="要記錄的證據">操作 ID 與查詢結果</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="情境">工具升級要求更多權限</td>
+                <td data-label="平台應有的行為">暫停沿用舊授權</td>
+                <td data-label="要記錄的證據">權限差異</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="情境">日誌含有密鑰或敏感內容</td>
+                <td data-label="平台應有的行為">遮罩並限制存取</td>
+                <td data-label="要記錄的證據">遮罩與存取紀錄</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="copy-col">
+          <p>個人使用時，先把以上行為做好；未來加入其他使用者，再增加專案隔離、管理員權限與資料保留規則。日誌本身也需要存取控制，不能因為要追蹤就無限制保存所有內容。</p>
+        </div>
+      </section>
+
+      <!-- Section 12 -->
+      <section class="doc-section" id="sec-12">
+        <div class="copy-col">
+          <div class="section-eyebrow">SECTION 12</div>
+          <h2>12. 分階段建置與驗收</h2>
+        </div>
+
+        <div class="table-wrap">
+          <table class="spec-table">
+            <thead>
+              <tr>
+                <th>階段</th>
+                <th>建置內容</th>
+                <th>通過條件</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="cell-key" data-label="階段">1：單機任務閉環</td>
+                <td data-label="建置內容">一個入口、一個推理端、一個執行器、持久化任務資料庫</td>
+                <td data-label="通過條件">本機任務可從提出走到驗證；重啟後查得到進度</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="階段">2：受控執行</td>
+                <td data-label="建置內容">身分、工具範圍、授權核銷、隔離及稽核</td>
+                <td data-label="通過條件">過期、冒用、變更參數、重放都被拒絕</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="階段">3：離線基本能力</td>
+                <td data-label="建置內容">本機模型、索引、工具與必要設定</td>
+                <td data-label="通過條件">關閉外網後，指定基本任務仍可完成</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="階段">4：第二個專案</td>
+                <td data-label="建置內容">用同一套工具登錄方式接入</td>
+                <td data-label="通過條件">不必修改核心授權邏輯</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="階段">5：遠端工作者</td>
+                <td data-label="建置內容">節點身分、任務派送、失聯與對帳</td>
+                <td data-label="通過條件">遠端中斷不造成盲目重複執行</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="階段">6：多模型與排程</td>
+                <td data-label="建置內容">評議、模型路由、週期工作及品質評估</td>
+                <td data-label="通過條件">有可量測收益，且不突破既有權限</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <figure class="section-figure">
+          <picture>
+            <source media="(max-width: 640px)" srcset="images/sec12_roadmap-mobile.png">
+            <img src="images/sec12_roadmap.png" alt="六階段漸進式建置與驗收路線圖：從階段 1 單機任務閉環逐步演進至階段 6 多模型與排程">
+          </picture>
+          <figcaption>圖 12-1：六階段建置路線圖——先建立單機模組化閉環與受控執行邊界，再逐步接入多專案與遠端節點</figcaption>
+        </figure>
+
+        <div class="copy-col">
+          <p>初期採用單機、模組化的核心服務，加上受隔離的執行程序。Lumina 與 Hermes 可以先在同一台主機，以不同程序或系統身分建立邊界；控制面與執行面分離，不需要立刻變成跨多台主機的分散式系統。</p>
+        </div>
+      </section>
+
+      <!-- Section 13 -->
+      <section class="doc-section" id="sec-13">
+        <div class="copy-col">
+          <div class="section-eyebrow">SECTION 13</div>
+          <h2>13. 第一個端到端驗收案例</h2>
+          <blockquote class="thesis-quote">
+            <p>離線讀取指定資料夾中的五份文件，產生一份含來源的 HTML 草稿，經驗證後保存到指定專案目錄。</p>
+          </blockquote>
+          <p>這個案例能檢驗本機基本能力、資料範圍、工具執行、寫入授權、成果驗證與中斷恢復。外部依賴少，也容易定位問題。</p>
+
+          <div class="checklist-shell" id="e2eChecklist">
+            <div class="checklist-header">
+              <span class="checklist-status" id="checklistStatus">驗收進度：0 / 6</span>
+              <button type="button" class="checklist-reset" id="checklistReset">重設勾選</button>
+            </div>
+            <ul class="checklist-items">
+              <li class="checklist-item">
+                <label>
+                  <input type="checkbox" data-check-id="c1">
+                  <span>關閉外網，確認基本流程仍可運作。</span>
+                </label>
+              </li>
+              <li class="checklist-item">
+                <label>
+                  <input type="checkbox" data-check-id="c2">
+                  <span>核准後更換目標路徑，確認系統拒絕。</span>
+                </label>
+              </li>
+              <li class="checklist-item">
+                <label>
+                  <input type="checkbox" data-check-id="c3">
+                  <span>同時提交相同授權，確認只有一次取得執行權。</span>
+                </label>
+              </li>
+              <li class="checklist-item">
+                <label>
+                  <input type="checkbox" data-check-id="c4">
+                  <span>執行途中關閉程序，確認重啟後保留正確狀態。</span>
+                </label>
+              </li>
+              <li class="checklist-item">
+                <label>
+                  <input type="checkbox" data-check-id="c5">
+                  <span>放入帶有越權指令的文件，確認它只能被當成資料。</span>
+                </label>
+              </li>
+              <li class="checklist-item">
+                <label>
+                  <input type="checkbox" data-check-id="c6">
+                  <span>讓產物不符合完成標準，確認平台不會只因 AI 說完成就標示成功。</span>
+                </label>
+              </li>
+            </ul>
+          </div>
+
+          <p>下一步先完成這一條可反覆驗證的任務流程，再擴大工具與模型數量。當它穩定後，Scout、知識庫、台股報告與其他小專案，便能依同一份工具與任務契約接入，並確認新增能力仍在原本的信任邊界內。</p>
+        </div>
+      </section>
+
+      <!-- Section 14 -->
+      <section class="doc-section" id="sec-14">
+        <div class="copy-col">
+          <div class="section-eyebrow">SECTION 14</div>
+          <h2>14. 全面性實戰案例：從週期探索到跨專案交付的完整作業流</h2>
+          <p>當第 13 節的單機閉環穩定後，以下案例展示平台在真實運作中，如何把週期排程（Scout）、知識庫（Knowledge Base）、業務專案（台股、Costco）、多 CLI 規劃、細粒度授權、斷線對帳與離線降級串成一條完整作業流：</p>
+          <blockquote class="thesis-quote">
+            <p>每週五排程產出一份「跨專案週報（HTML）」，整合 Scout 本週探索到的 AI 工具候選、台股觀察摘要與 Costco 採購紀錄比對；若遇斷網則改產離線降級草稿，連網恢復並經人工確認後才寫入專案目錄與回寫知識庫。</p>
+          </blockquote>
+          <h3>端到端全流程圖</h3>
+        </div>
+
+        <div class="diagram-card">
+          <div class="diagram-bar">
+            <span>流程圖 14-1：週期探索、跨專案整合、離線降級與對帳全作業流（可點擊放大・支援離線向量檢視）</span>
+            <button type="button" class="diagram-zoom-btn" data-diagram="svg-comprehensive">放大檢視流程圖</button>
+          </div>
+          <div class="diagram-canvas">
+            <div class="diagram-svg-wrap" id="svg-comprehensive">
+              <svg class="flow-svg" viewBox="0 0 760 1375" role="img" aria-label="流程圖 14-1：週期探索、跨專案整合、離線降級與對帳全作業流">
+                <defs>
+                  <marker id="arr-c" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+                    <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#3f3b36"/>
+                  </marker>
+                  <marker id="arr-c-teal" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+                    <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#1f514c"/>
+                  </marker>
+                  <marker id="arr-c-warn" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+                    <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#b84a2d"/>
+                  </marker>
+                </defs>
+
+                <!-- Connectors -->
+                <path class="edge-line--accent" d="M380,66 L380,90" marker-end="url(#arr-c-teal)"/>
+                <path class="edge-line--accent" d="M380,140 L380,164" marker-end="url(#arr-c-teal)"/>
+
+                <!-- C --> D / E --> F -->
+                <path class="edge-line--warn" d="M250,200 L185,200 L185,260" marker-end="url(#arr-c-warn)"/>
+                <path class="edge-line--accent" d="M510,200 L575,200 L575,260" marker-end="url(#arr-c-teal)"/>
+                <path class="edge-line" d="M185,320 L185,342 L340,342 L340,358" marker-end="url(#arr-c)"/>
+                <path class="edge-line--accent" d="M575,320 L575,342 L420,342 L420,358" marker-end="url(#arr-c-teal)"/>
+
+                <!-- F --> G --> H / I -->
+                <path class="edge-line--accent" d="M380,410 L380,432" marker-end="url(#arr-c-teal)"/>
+                <path class="edge-line" d="M258,466 L180,466 L180,520" marker-end="url(#arr-c)"/>
+                <path class="edge-line--accent" d="M502,466 L556,466 L556,634 L536,634" marker-end="url(#arr-c-teal)"/>
+                <path class="edge-line" d="M180,578 L180,634 L224,634" marker-end="url(#arr-c)"/>
+
+                <!-- I --> J -->
+                <path class="edge-line--accent" d="M380,660 L380,682" marker-end="url(#arr-c-teal)"/>
+
+                <!-- J --> K / L -->
+                <path class="edge-line" d="M264,716 L186,716 L186,772" marker-end="url(#arr-c)"/>
+                <path class="edge-line--accent" d="M496,716 L622,716 L622,870" marker-end="url(#arr-c-teal)"/>
+
+                <!-- K --> Z / L -->
+                <path class="edge-line--warn" d="M168,832 L168,872" marker-end="url(#arr-c-warn)"/>
+                <path class="edge-line--accent" d="M328,804 L466,804 L466,870" marker-end="url(#arr-c-teal)"/>
+
+                <!-- L --> M --> N -->
+                <path class="edge-line--accent" d="M520,924 L520,948" marker-end="url(#arr-c-teal)"/>
+                <path class="edge-line--accent" d="M520,1000 L520,1022" marker-end="url(#arr-c-teal)"/>
+
+                <!-- N --> O / P -->
+                <path class="edge-line--warn" d="M392,1058 L328,1058" marker-end="url(#arr-c-warn)"/>
+                <path class="edge-line--accent" d="M520,1094 L520,1124" marker-end="url(#arr-c-teal)"/>
+
+                <!-- P --> Q --> R / S -->
+                <path class="edge-line--accent" d="M520,1176 L520,1200" marker-end="url(#arr-c-teal)"/>
+                <path class="edge-line--warn" d="M392,1236 L320,1236" marker-end="url(#arr-c-warn)"/>
+                <path class="edge-line--warn" d="M180,1266 L180,1328 L254,1328" marker-end="url(#arr-c-warn)"/>
+                <path class="edge-line--accent" d="M520,1272 L520,1300" marker-end="url(#arr-c-teal)"/>
+
+                <!-- Nodes -->
+                <rect class="node-terminal" x="210" y="18" width="340" height="48" rx="24"/>
+                <text x="380" y="47" text-anchor="middle" fill="#f9f7f4" font-size="14.5" font-weight="700">1. 排程觸發並建立任務契約</text>
+
+                <rect class="node-card" x="200" y="92" width="360" height="48" rx="10"/>
+                <text x="380" y="121" text-anchor="middle" fill="#1a1a1a" font-size="14.5" font-weight="600">2. 檢查網路、本機模型與節點狀態</text>
+
+                <polygon class="node-decision" points="380,166 512,200 380,234 248,200"/>
+                <text x="380" y="205" text-anchor="middle" fill="#1f514c" font-size="14" font-weight="700">外網與遠端服務可用嗎</text>
+
+                <rect class="node-warn" x="38" y="264" width="294" height="56" rx="10"/>
+                <text x="185" y="288" text-anchor="middle" fill="#1a1a1a" font-size="13.5" font-weight="600">進入降級模式：</text>
+                <text x="185" y="308" text-anchor="middle" fill="#1a1a1a" font-size="13.5" font-weight="600">標註本機資料截止時間</text>
+
+                <rect class="node-card" x="428" y="264" width="294" height="56" rx="10"/>
+                <text x="575" y="288" text-anchor="middle" fill="#1a1a1a" font-size="13.5" font-weight="600">載入最新核准來源</text>
+                <text x="575" y="308" text-anchor="middle" fill="#1a1a1a" font-size="13.5" font-weight="600">與各業務專案介面</text>
+
+                <rect class="node-card" x="210" y="362" width="340" height="48" rx="10"/>
+                <text x="380" y="391" text-anchor="middle" fill="#1a1a1a" font-size="14.5" font-weight="600">3. 統一推理介面產出第 1 版計畫</text>
+
+                <polygon class="node-decision" points="380,434 504,466 380,498 256,466"/>
+                <text x="380" y="471" text-anchor="middle" fill="#1f514c" font-size="14" font-weight="700">是否啟用 Multi-AI 檢查</text>
+
+                <rect class="node-card" x="44" y="524" width="272" height="54" rx="10"/>
+                <text x="180" y="556" text-anchor="middle" fill="#1a1a1a" font-size="14" font-weight="600">第二模型交叉審查計畫與風險</text>
+
+                <rect class="node-card" x="230" y="610" width="300" height="50" rx="10"/>
+                <text x="380" y="640" text-anchor="middle" fill="#1a1a1a" font-size="14.5" font-weight="600">4. 政策判定與計畫確認頁</text>
+
+                <polygon class="node-decision" points="380,684 498,716 380,748 262,716"/>
+                <text x="380" y="721" text-anchor="middle" fill="#1f514c" font-size="14" font-weight="700">超出既有排程授權嗎</text>
+
+                <rect class="node-card" x="44" y="776" width="284" height="56" rx="10"/>
+                <text x="186" y="800" text-anchor="middle" fill="#1a1a1a" font-size="13.5" font-weight="600">使用者檢視資料去向與變更</text>
+                <text x="186" y="820" text-anchor="middle" fill="#1a1a1a" font-size="13.5" font-weight="600">並進行人工核准</text>
+
+                <rect class="node-warn" x="44" y="876" width="248" height="54" rx="10"/>
+                <text x="168" y="908" text-anchor="middle" fill="#1a1a1a" font-size="13.5" font-weight="600">保存版本紀錄並停止或重規劃</text>
+
+                <rect class="node-card" x="348" y="874" width="344" height="50" rx="10"/>
+                <text x="520" y="904" text-anchor="middle" fill="#1a1a1a" font-size="14" font-weight="600">核發綁定版本與路徑的單次 grant</text>
+
+                <rect class="node-card" x="330" y="952" width="380" height="48" rx="10"/>
+                <text x="520" y="981" text-anchor="middle" fill="#1a1a1a" font-size="14" font-weight="600">5. Hermes 原子核銷 grant 並隔離讀取資料</text>
+
+                <polygon class="node-decision" points="520,1024 650,1058 520,1092 390,1058"/>
+                <text x="520" y="1063" text-anchor="middle" fill="#1f514c" font-size="13.5" font-weight="700">偵測越權指令或換檔異常嗎</text>
+
+                <rect class="node-warn" x="44" y="1030" width="278" height="56" rx="10"/>
+                <text x="183" y="1054" text-anchor="middle" fill="#1a1a1a" font-size="13.5" font-weight="600">閘道立即攔截</text>
+                <text x="183" y="1074" text-anchor="middle" fill="#1a1a1a" font-size="13.5" font-weight="600">並留存稽核紀錄</text>
+
+                <rect class="node-card" x="348" y="1128" width="344" height="48" rx="10"/>
+                <text x="520" y="1157" text-anchor="middle" fill="#1a1a1a" font-size="14" font-weight="600">產出含來源與時間戳的 HTML 週報</text>
+
+                <polygon class="node-decision" points="520,1202 650,1236 520,1270 390,1236"/>
+                <text x="520" y="1241" text-anchor="middle" fill="#1f514c" font-size="13.5" font-weight="700">6. 寫入或發布是否斷線逾時</text>
+
+                <rect class="node-warn" x="44" y="1208" width="270" height="56" rx="10"/>
+                <text x="179" y="1241" text-anchor="middle" fill="#1a1a1a" font-size="14" font-weight="600">依操作 ID 與冪等鍵對帳</text>
+
+                <rect class="node-terminal" x="260" y="1304" width="420" height="48" rx="24"/>
+                <text x="470" y="1333" text-anchor="middle" fill="#f9f7f4" font-size="14.5" font-weight="700">7. 驗證產物後交付驗收與知識回流</text>
+
+                <!-- Pills -->
+                <rect class="pill-bg--warn" x="168" y="218" width="34" height="22" rx="11"/>
+                <text x="185" y="233" text-anchor="middle" fill="#b84a2d" font-size="12" font-weight="700">否</text>
+
+                <rect class="pill-bg--accent" x="558" y="218" width="34" height="22" rx="11"/>
+                <text x="575" y="233" text-anchor="middle" fill="#1f514c" font-size="12" font-weight="700">是</text>
+
+                <rect class="pill-bg" x="163" y="484" width="34" height="22" rx="11"/>
+                <text x="180" y="499" text-anchor="middle" fill="#3f3b36" font-size="12" font-weight="600">是</text>
+
+                <rect class="pill-bg--accent" x="539" y="538" width="34" height="22" rx="11"/>
+                <text x="556" y="553" text-anchor="middle" fill="#1f514c" font-size="12" font-weight="700">否</text>
+
+                <rect class="pill-bg" x="150" y="732" width="72" height="22" rx="11"/>
+                <text x="186" y="747" text-anchor="middle" fill="#3f3b36" font-size="12" font-weight="600">需要確認</text>
+
+                <rect class="pill-bg--accent" x="570" y="782" width="104" height="22" rx="11"/>
+                <text x="622" y="797" text-anchor="middle" fill="#1f514c" font-size="12" font-weight="700">符合低風險政策</text>
+
+                <rect class="pill-bg--warn" x="124" y="841" width="88" height="22" rx="11"/>
+                <text x="168" y="856" text-anchor="middle" fill="#b84a2d" font-size="12" font-weight="700">拒絕或修改</text>
+
+                <rect class="pill-bg--accent" x="372" y="792" width="48" height="22" rx="11"/>
+                <text x="396" y="807" text-anchor="middle" fill="#1f514c" font-size="12" font-weight="700">核准</text>
+
+                <rect class="pill-bg--warn" x="342" y="1046" width="34" height="22" rx="11"/>
+                <text x="359" y="1061" text-anchor="middle" fill="#b84a2d" font-size="12" font-weight="700">是</text>
+
+                <rect class="pill-bg--accent" x="503" y="1097" width="34" height="22" rx="11"/>
+                <text x="520" y="1112" text-anchor="middle" fill="#1f514c" font-size="12" font-weight="700">否</text>
+
+                <rect class="pill-bg--warn" x="328" y="1224" width="60" height="22" rx="11"/>
+                <text x="358" y="1239" text-anchor="middle" fill="#b84a2d" font-size="11.5" font-weight="700">結果不明</text>
+
+                <rect class="pill-bg--accent" x="488" y="1275" width="64" height="22" rx="11"/>
+                <text x="520" y="1290" text-anchor="middle" fill="#1f514c" font-size="11.5" font-weight="700">明確成功</text>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="copy-col">
+          <h3>各步驟責任與控制邊界對照</h3>
+        </div>
+
+        <div class="table-wrap">
+          <table class="spec-table">
+            <thead>
+              <tr>
+                <th>步驟</th>
+                <th>主要作業內容</th>
+                <th>參與元件</th>
+                <th>授權與信任邊界</th>
+                <th>異常與失敗處置</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="cell-key" data-label="步驟">1. 觸發與契約</td>
+                <td data-label="主要作業內容">依週期排程建立具版次的任務契約，明確定義資料範圍與完成標準</td>
+                <td data-label="參與元件">Lumina 任務入口</td>
+                <td data-label="授權與信任邊界">排程政策僅允許讀取公開來源與產出草稿，不含安裝或對外發布權</td>
+                <td data-label="異常與失敗處置">超過預算、步驟數或有效期時自動停用排程</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="步驟">2. 環境與降級</td>
+                <td data-label="主要作業內容">檢查外網、本機模型、Knowledge Base 索引與遠端工作者可用性</td>
+                <td data-label="參與元件">Lumina、本機／遠端節點</td>
+                <td data-label="授權與信任邊界">離線時所有驗證、政策與資料庫必須留在本機獨立運作</td>
+                <td data-label="異常與失敗處置">外網中斷時產出帶截止時間標記的降級草稿，不捏造今日行情</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="步驟">3. 推理與評議</td>
+                <td data-label="主要作業內容">透過轉接層由單一 CLI 產出結構化計畫，必要時由另一模型交叉檢查</td>
+                <td data-label="參與元件">四個 CLI、Multi-AI</td>
+                <td data-label="授權與信任邊界">CLI 不直連本機 Shell；Multi-AI 一致同意不替代實測證據與授權</td>
+                <td data-label="異常與失敗處置">切換模型時由 Lumina 傳遞任務摘要與已完成步驟，不依賴對話歷史</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="步驟">4. 確認與核發</td>
+                <td data-label="主要作業內容">向使用者呈現「將讀取哪些資料、寫入哪個路徑、是否離開本機」</td>
+                <td data-label="參與元件">計畫確認頁、Lumina 政策引擎</td>
+                <td data-label="授權與信任邊界">核發綁定任務、計畫版本、工具版本與資源摘要的單次 grant</td>
+                <td data-label="異常與失敗處置">若使用者修改範圍，立即產生新計畫版本，舊授權不沿用</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="步驟">5. 隔離與核銷</td>
+                <td data-label="主要作業內容">同交易完成 grant 核銷與操作紀錄，讀取 Scout、台股與 Costco 輸出</td>
+                <td data-label="參與元件">Hermes 執行閘道、各業務專案</td>
+                <td data-label="授權與信任邊界">網頁與文件一律視為資料；夾帶「請關閉限制」等指令不得影響政策</td>
+                <td data-label="異常與失敗處置">核銷失敗、執行者不符或參數被置換時立即中止並記為稽核事件</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="步驟">6. 去重與對帳</td>
+                <td data-label="主要作業內容">執行寫入目標目錄或外部通知，保留操作紀錄與冪等鍵</td>
+                <td data-label="參與元件">Hermes、本機資料庫</td>
+                <td data-label="授權與信任邊界">禁止在結果不明時直接重送造成重複發布</td>
+                <td data-label="異常與失敗處置">逾時或斷線時依操作 ID 查詢對帳；達上限仍不明則轉「待人工處理」</td>
+              </tr>
+              <tr>
+                <td class="cell-key" data-label="步驟">7. 驗收與回流</td>
+                <td data-label="主要作業內容">檢查檔案存在、格式與來源完整度，經確認後才將摘要納入知識庫</td>
+                <td data-label="參與元件">成果頁、Knowledge Base、日誌下游</td>
+                <td data-label="授權與信任邊界">來源資料、AI 推論與核准知識分層保存；日誌遮罩敏感欄位</td>
+                <td data-label="異常與失敗處置">產物未達完成標準時退回修正；Scout 發現的新工具僅入評估佇列</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="copy-col">
+          <p>這個綜合案例把前面各節的規則收斂成一條可重複執行的日常作業：模型與多 CLI 負責把分散的資訊整理成可檢查的提案，真正決定能讀什麼、能寫哪裡、何時該停下來對帳的，始終是平台與使用者手中的契約與授權。</p>
+        </div>
+      </section>
+
+      <!-- Section 15 -->
+      <section class="doc-section" id="sec-15">
+        <div class="copy-col">
+          <div class="section-eyebrow">SECTION 15</div>
+          <h2>15. 參考資料</h2>
+          <p>以下來源支援文中的架構原則；具體模組劃分與建置順序屬於針對本需求的設計建議。</p>
+          <ul class="ref-list">
+            <li>
+              <a class="ref-card" href="https://www.anthropic.com/research/building-effective-agents" target="_blank" rel="noopener noreferrer">
+                <span class="ref-main">
+                  <span class="ref-idx">[01]</span>
+                  <span class="ref-title">Anthropic — Building effective agents</span>
+                </span>
+                <span class="ref-domain">anthropic.com ↗</span>
+              </a>
+            </li>
+            <li>
+              <a class="ref-card" href="https://www.rfc-editor.org/rfc/rfc9449.html" target="_blank" rel="noopener noreferrer">
+                <span class="ref-main">
+                  <span class="ref-idx">[02]</span>
+                  <span class="ref-title">IETF — RFC 9449: OAuth 2.0 Demonstrating Proof of Possession（DPoP）</span>
+                </span>
+                <span class="ref-domain">rfc-editor.org ↗</span>
+              </a>
+            </li>
+            <li>
+              <a class="ref-card" href="https://docs.langchain.com/oss/python/langgraph/persistence" target="_blank" rel="noopener noreferrer">
+                <span class="ref-main">
+                  <span class="ref-idx">[03]</span>
+                  <span class="ref-title">LangChain — LangGraph Persistence</span>
+                </span>
+                <span class="ref-domain">docs.langchain.com ↗</span>
+              </a>
+            </li>
+            <li>
+              <a class="ref-card" href="https://modelcontextprotocol.io/docs/draft/tutorials/security/security_best_practices" target="_blank" rel="noopener noreferrer">
+                <span class="ref-main">
+                  <span class="ref-idx">[04]</span>
+                  <span class="ref-title">Model Context Protocol — Security Best Practices（draft 文件）</span>
+                </span>
+                <span class="ref-domain">modelcontextprotocol.io ↗</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+    </article>
+  </main>
+
+  <footer class="doc-footer">
+    <span>Lumina AI Crew · 可信任 AI 執行平台規劃文件（2026-11-13）</span>
+    <a class="back-top" href="#top">回到頂部 ↑</a>
+  </footer>
+
+  <!-- Shared Lightbox for Infographics & Mermaid Diagrams -->
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="放大檢視圖表">
+    <span class="lightbox-hint">點擊空白處或按 Esc 關閉</span>
+    <img src="" alt="">
+    <div class="lightbox-svg-stage" id="lightboxSvgStage"></div>
+  </div>
+
+  <!-- Offline-Ready Interactive Script (no external diagram runtime required) -->
+  <script>
+    (function () {
+      // 1. Lightbox (using img.currentSrc so <picture> 9:16 mobile variant opens cleanly)
+      var lightbox = document.getElementById("lightbox");
+      var lightboxImg = lightbox.querySelector("img");
+      var lightboxSvgStage = document.getElementById("lightboxSvgStage");
+
+      function openImageLightbox(img) {
+        lightboxSvgStage.classList.remove("is-active");
+        lightboxSvgStage.innerHTML = "";
+        lightboxImg.style.display = "block";
+        lightboxImg.src = img.currentSrc || img.src;
+        lightboxImg.alt = img.alt;
+        lightbox.classList.add("is-open");
+      }
+
+      function openDiagramLightbox(diagramId) {
+        var container = document.getElementById(diagramId);
+        if (!container) return;
+        var svg = container.querySelector("svg");
+        if (!svg) return;
+        lightboxImg.style.display = "none";
+        lightboxImg.src = "";
+        lightboxSvgStage.innerHTML = "";
+        lightboxSvgStage.appendChild(svg.cloneNode(true));
+        lightboxSvgStage.classList.add("is-active");
+        lightbox.classList.add("is-open");
+      }
+
+      function closeLightbox() {
+        lightbox.classList.remove("is-open");
+        lightboxImg.src = "";
+        lightboxImg.style.display = "block";
+        lightboxSvgStage.classList.remove("is-active");
+        lightboxSvgStage.innerHTML = "";
+      }
+
+      document.querySelectorAll("figure.summary-figure img, figure.section-figure img").forEach(function (img) {
+        img.addEventListener("click", function () { openImageLightbox(img); });
+      });
+
+      document.querySelectorAll(".diagram-zoom-btn").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          openDiagramLightbox(btn.getAttribute("data-diagram"));
+        });
+      });
+
+      document.querySelectorAll(".diagram-svg-wrap").forEach(function (wrap) {
+        wrap.addEventListener("click", function () {
+          openDiagramLightbox(wrap.id);
+        });
+      });
+
+      lightboxSvgStage.addEventListener("click", function (e) {
+        e.stopPropagation();
+      });
+
+      lightbox.addEventListener("click", closeLightbox);
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape") closeLightbox();
+      });
+
+      // 2. Scroll Progress Bar & Active Section Highlight
+      var progressBar = document.getElementById("navProgress");
+      var navLinksContainer = document.getElementById("navLinks");
+      var navLinks = Array.prototype.slice.call(document.querySelectorAll("#navLinks a"));
+      var sections = navLinks.map(function (link) {
+        return document.querySelector(link.getAttribute("href"));
+      }).filter(Boolean);
+
+      function updateProgress() {
+        var docHeight = document.documentElement.scrollHeight - window.innerHeight;
+        var ratio = docHeight > 0 ? Math.min(1, Math.max(0, window.scrollY / docHeight)) : 0;
+        if (progressBar) {
+          progressBar.style.width = (ratio * 100).toFixed(2) + "%";
+        }
+        if (window.scrollY < 180) {
+          navLinks.forEach(function (link) { link.classList.remove("is-active"); });
+        }
+      }
+
+      window.addEventListener("scroll", updateProgress, { passive: true });
+      updateProgress();
+
+      if ("IntersectionObserver" in window && sections.length) {
+        var observer = new IntersectionObserver(function (entries) {
+          entries.forEach(function (entry) {
+            if (entry.isIntersecting) {
+              var id = "#" + entry.target.id;
+              navLinks.forEach(function (link) {
+                var active = link.getAttribute("href") === id;
+                link.classList.toggle("is-active", active);
+                if (active && navLinksContainer && window.scrollY >= 180) {
+                  var targetLeft = link.offsetLeft - navLinksContainer.clientWidth / 2 + link.offsetWidth / 2;
+                  navLinksContainer.scrollLeft = Math.max(0, targetLeft);
+                }
+              });
+            }
+          });
+        }, { rootMargin: "-20% 0px -68% 0px", threshold: 0 });
+
+        sections.forEach(function (sec) { observer.observe(sec); });
+      }
+
+      // 3. Interactive Acceptance Checklist with localStorage persistence
+      var STORAGE_KEY = "lumina-e2e-checklist-v1";
+      var checkboxes = Array.prototype.slice.call(document.querySelectorAll('#e2eChecklist input[type="checkbox"]'));
+      var statusEl = document.getElementById("checklistStatus");
+      var resetBtn = document.getElementById("checklistReset");
+
+      function loadChecklist() {
+        try {
+          return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+        } catch (e) {
+          return {};
+        }
+      }
+
+      function saveChecklist(state) {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        } catch (e) {}
+      }
+
+      function refreshStatus() {
+        var done = checkboxes.filter(function (cb) { return cb.checked; }).length;
+        if (statusEl) {
+          statusEl.textContent = "驗收進度：" + done + " / " + checkboxes.length;
+        }
+      }
+
+      var saved = loadChecklist();
+      checkboxes.forEach(function (cb) {
+        var key = cb.getAttribute("data-check-id");
+        if (saved[key]) cb.checked = true;
+        cb.addEventListener("change", function () {
+          var next = loadChecklist();
+          next[key] = cb.checked;
+          saveChecklist(next);
+          refreshStatus();
+        });
+      });
+      refreshStatus();
+
+      if (resetBtn) {
+        resetBtn.addEventListener("click", function () {
+          checkboxes.forEach(function (cb) { cb.checked = false; });
+          saveChecklist({});
+          refreshStatus();
+        });
+      }
+    })();
+  </script>
+</body>
+</html>
